@@ -1,6 +1,6 @@
 import pygame
 from pygame.draw import *
-import numpy as np
+from random import randint
 pygame.init()
 
 FPS = 20
@@ -19,6 +19,7 @@ COLORS = [RED, BLUE, YELLOW, GREEN, MAGENTA, CYAN]
 points = 0
 max_point = 0
 t = 0
+
 def speed(x_max = 30, y_max = 30):
     return [randint(-x_max, x_max+1), randint(-y_max, y_max+1)]
 
