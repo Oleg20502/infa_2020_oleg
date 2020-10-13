@@ -1,2 +1,3 @@
-Oleg, 41
-Ivan, 52
+Oleg,52
+Ivan,246
+Kirill,47

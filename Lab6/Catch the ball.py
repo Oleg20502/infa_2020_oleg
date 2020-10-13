@@ -1,8 +1,23 @@
 import pygame
 from pygame.draw import *
 from random import randint
+import time as t
 
-pl_name = input('Enter your name:')
+pl_rem = 1
+Path = '/home-local/student/infa_2020_oleg/Lab6/Game results.txt'
+pl_name = ''
+if pl_rem == 1:
+    pl_name = input('Enter your name: ')
+    with open(Path, 'r') as f:
+        data = f.readlines()
+    g_dict = dict()
+    pl, res = '', 0
+    for d in data:
+        pl = d.split(',')[0]
+        res = int(d.split(',')[1])
+        g_dict[pl] = res
+        
+t.sleep(1)      
 
 pygame.init()
 
@@ -30,7 +45,7 @@ effects = 0
 square_num = 5
 circle_num = 5
 triangle_num = 5
-pl_time = 1       #время игры 1 минута
+g_time = 60       #время игры in seconds
 
 def speed(x_max = 30, x_min = 10, y_max = 30, y_min = 10):
     sp = [randint(x_min, x_max)*(-1)**randint(1,2), randint(y_min, y_max)*(-1)**randint(1,2)]
@@ -85,7 +100,7 @@ class square():
         self.dx = int(speed[0])
         self.dy = int(speed[1])
         a_max = 100
-        a_min = 50
+        a_min = 60
         self.a = randint(a_min, a_max)
         self.da = int(self.a)
         w_max = 10
@@ -130,7 +145,7 @@ class triangle():
         self.dx = int(speed[0])
         self.dy = int(speed[1])
         a_max = 100
-        a_min = 50
+        a_min = 60
         self.a = randint(a_min, a_max)
         self.da_x = int(self.a)
         self.da_y = round(self.a*0.87)
@@ -206,9 +221,10 @@ for i in range(square_num):
     Obj.append(square(speed()))
 for i in range(triangle_num):
     Obj.append(triangle(speed()))
-t = 0
+    
+t1 = t.time()
+
 while not finished:
-    t +=1
     clock.tick(FPS)
     tr, sq = [], []
     for event in pygame.event.get():
@@ -218,12 +234,26 @@ while not finished:
             points = count(Obj, points)
             if effects == 1:
                 split(Obj)
-    for obj in Obj:    
+    for obj in Obj:
         obj.draw_obj()
     pygame.display.update()
     screen.fill(WHITE)
-    if t == int(1100*pl_time):
+    t2 = t.time()
+    if g_time <= t2 - t1:
         finished = True
-    
+        
+print()
 print(str(pl_name)+'! Your score:', points)
+if pl_rem== 1:
+    if points > max(g_dict.values()):
+        print("Congratulations! You've set a record!")
+    g_dict[pl_name] = points
+    new_data = []
+    for k,i in g_dict.items():
+        pair = ','.join([k, str(i)])
+        new_data.append(pair)
+    new_data_str = '\n'.join(new_data)
+    with open(Path, 'w') as f:
+        f.write(new_data_str)
+
 pygame.quit()
