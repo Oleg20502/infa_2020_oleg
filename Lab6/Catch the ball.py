@@ -3,9 +3,10 @@ from pygame.draw import *
 from random import randint
 import time as t
 
-pl_rem = 1
+#if 1 the player's name and result are recorded
+pl_rem = 0
 Path = '/home-local/student/infa_2020_oleg/Lab6/Game results.txt'
-pl_name = ''
+pl_name = 'Player'
 if pl_rem == 1:
     pl_name = input('Enter your name: ')
     with open(Path, 'r') as f:
@@ -40,46 +41,63 @@ c_num = len(COLORS)
 points = 0
 
 #Если 1 - режим игры меняется
-effects = 0
+effects = 1
 
 square_num = 5
-circle_num = 5
-triangle_num = 5
-g_time = 60       #время игры in seconds
+circle_num = 3
+triangle_num = 4
+max_score = square_num*10 + circle_num + triangle_num*5
 
-def speed(x_max = 30, x_min = 10, y_max = 30, y_min = 10):
+#время игры in seconds
+g_time = 60
+
+def speed(x_max = 20, x_min = 10, y_max = 20, y_min = 10):
     sp = [randint(x_min, x_max)*(-1)**randint(1,2), randint(y_min, y_max)*(-1)**randint(1,2)]
     return sp
- 
-    
+
+
 class ball():
-    def __init__(self, speed):
+    def __init__(self, speed, x=0, y=0):
         self.scr_sx = X
         self.scr_sy = Y
         self.type = 'ball'
         self.points = 1
         self.dx = int(speed[0])
-        self.dy = int(speed[1])        
+        self.dy = int(speed[1]) 
         r_max = 60
         r_min = 40
         self.r = randint(r_min, r_max)
         self.dr = int(self.r)
-        self.x = randint(self.dr, self.scr_sx-self.dr)
-        self.y = randint(self.dr, self.scr_sy-self.dr)
+        if x == 0:
+            x = randint(self.dr, self.scr_sx-self.dr)
+        if y == 0:
+            y = randint(self.dr, self.scr_sy-self.dr)
+        self.x = x
+        self.y = y
+        if self.x <= self.dr or self.x >= self.scr_sx-self.dr:
+            if self.x <= self.dr:
+                self.x = self.dr
+            else:
+                self.x = self.scr_sx-self.dr
+        if self.y <= self.dr or self.y >= self.scr_sy-self.dr:
+            if self.y <= self.dr:
+                self.y = self.dr
+            else:
+                self.y = self.scr_sy-self.dr
         self.color = COLORS[randint(0, c_num-1)]
         
-    def draw_obj(self):
+    def draw_object(self):
         '''рисует шарик '''
-        self.move()
         circle(screen, self.color, (self.x, self.y), self.r)
+        self.move()
         
     def move(self):              
-        self.x += self.dx
-        self.y += self.dy        
-        if (self.x <= self.dr or self.x >= self.scr_sx-self.dr):
+        if self.x <= self.dr or self.x >= self.scr_sx-self.dr:
             self.dx *= -1
-        if (self.y <= self.dr or self.y >= self.scr_sy-self.dr):
+        if self.y <= self.dr or self.y >= self.scr_sy-self.dr:
             self.dy *= -1
+        self.x += self.dx
+        self.y += self.dy  
 
     def hit(self, pos):
         point = 1
@@ -88,11 +106,9 @@ class ball():
             self.click = 1
         return self.click
 
-    def split(self):
-        pass
-        
+
 class square():
-    def __init__(self, speed):
+    def __init__(self, speed, x=0, y=0):
         self.scr_sx = X
         self.scr_sy = Y
         self.type = 'square'
@@ -106,22 +122,36 @@ class square():
         w_max = 10
         w_min = 5        
         self.width = randint(w_min, w_max) * randint(0, 1)
-        self.x = randint(0, self.scr_sx-self.da)
-        self.y = randint(0, self.scr_sy-self.da)
+        if x == 0:
+            x = randint(0, self.scr_sx-self.da)
+        if y == 0:
+            y = randint(0, self.scr_sy-self.da)
+        self.x = x
+        self.y = y
+        if self.x <= 0 or self.x >= self.scr_sx-self.da:
+            if self.x <= 0:
+                self.x = 0
+            else:
+                self.x = self.scr_sx-self.da
+        if self.y <= 0 or self.y >= self.scr_sy-self.da:
+            if self.y <= 0:
+                self.y = 0
+            else:
+                self.y = self.scr_sy-self.da
         self.color = COLORS[randint(0, c_num-1)]
     
-    def draw_obj(self):
+    def draw_object(self):
         '''рисует квадрат'''
-        self.move()
         rect(screen, self.color, (self.x, self.y, self.a, self.a), self.width)
-        
-    def move(self):              
-        self.x += self.dx
-        self.y += self.dy        
+        self.move()
+            
+    def move(self):                     
         if self.x <= 0 or self.x >= self.scr_sx-self.da:
             self.dx *= -1
         if self.y <= 0 or self.y >= self.scr_sy-self.da:
             self.dy *= -1
+        self.x += self.dx
+        self.y += self.dy   
     
     def hit(self, pos):
         point = 5
@@ -130,14 +160,9 @@ class square():
             self.click = 1
         return self.click
         
-    def split(self, ef):
-        if self.click == 1:
-            triangle()
-        
-        pass
 
 class triangle():
-    def __init__(self, speed):
+    def __init__(self, speed, x=0, y=0):
         self.scr_sx = X
         self.scr_sy = Y
         self.type = 'triangle'
@@ -152,23 +177,37 @@ class triangle():
         w_max = 10
         w_min = 5        
         self.width = randint(w_min, w_max) * randint(0, 1)
-        self.x = randint(0, self.scr_sx-self.da_x)
-        self.y = randint(self.da_y, self.scr_sy)
+        if x == 0:
+            x = randint(0, self.scr_sx-self.da_x)
+        if y == 0:
+            y = randint(self.da_y, self.scr_sy)
+        self.x = x
+        self.y = y
+        if self.x <= 0 or self.x >= self.scr_sx-self.da_x:
+            if self.x <= 0:
+                self.x = 0
+            else:
+                self.x = self.scr_sx-self.da_x
+        if self.y <= self.da_x or self.y >= self.scr_sy:
+            if self.y <= self.da_x:
+                self.y = self.da_x
+            else:
+                self.y = self.scr_sy
         self.color = COLORS[randint(0, c_num-1)]
     
-    def draw_obj(self):
+    def draw_object(self):
         '''рисует треугольник'''
-        self.move()
         self.coor = [[self.x, self.y], [self.x+round(self.a/2), self.y-self.da_y], [self.x+self.a, self.y]]
         polygon(screen, self.color, self.coor, self.width)
+        self.move()
         
     def move(self):              
-        self.x += self.dx
-        self.y += self.dy        
         if self.x <= 0 or self.x >= self.scr_sx-self.da_x:
             self.dx *= -1
         if self.y <= self.da_x or self.y >= self.scr_sy:
             self.dy *= -1
+        self.x += self.dx
+        self.y += self.dy 
     pass
     
     def hit(self, pos):
@@ -181,6 +220,7 @@ class triangle():
             self.click = 1
         return self.click 
 
+
 def count(Obj, points):
     for obj in Obj:
         if obj.hit(event.pos) == 1:
@@ -188,65 +228,63 @@ def count(Obj, points):
     return points
 
 def split(Obj, sq_p = 2, tr_p = 3):
-    del_list =[]
     len_obj = len(Obj)
+    del_list, new_objects, new_Obj = [], [], []
     for i in range(len_obj):
         obj = Obj[i]
         if obj.hit(event.pos) == 1:
+            del_list.append(i)
             if obj.type == 'square':
-                del_list.append(i)
                 for j in range(sq_p): 
-                    Obj.append(triangle(speed()))
-                    Obj[-1].x = obj.x
-                    Obj[-1].y = obj.y
+                    new_objects.append(triangle(speed(), obj.x, obj.y))
             elif obj.type == 'triangle':
-                del_list.append(i)
                 for j in range(tr_p): 
-                    Obj.append(ball(speed()))
-                    Obj[-1].x = obj.x
-                    Obj[-1].y = obj.y
-            else:
-                del_list.append(i)
-    for d in del_list: 
-        Obj.pop(d)
+                    new_objects.append(ball(speed(), obj.x, obj.y))
+                    
+    for j in range(len_obj):
+        if j not in del_list:
+            new_Obj.append(Obj[j])
+    new_Obj += new_objects
+    return new_Obj
         
 pygame.display.update()
 clock = pygame.time.Clock()
 finished = False
 
-Obj = []
+Objects = []
 for i in range(circle_num):
-    Obj.append(ball(speed()))
+    Objects.append(ball(speed()))
 for i in range(square_num):
-    Obj.append(square(speed()))
+    Objects.append(square(speed()))
 for i in range(triangle_num):
-    Obj.append(triangle(speed()))
+    Objects.append(triangle(speed()))
     
 t1 = t.time()
 
 while not finished:
     clock.tick(FPS)
     tr, sq = [], []
+    for obj in Objects:
+        obj.draw_object()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             finished = True
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            points = count(Obj, points)
+            points = count(Objects, points)
             if effects == 1:
-                split(Obj)
-    for obj in Obj:
-        obj.draw_obj()
+                Objects = split(Objects)
     pygame.display.update()
     screen.fill(WHITE)
     t2 = t.time()
     if g_time <= t2 - t1:
         finished = True
+        print('\nTime is over!')
         
-print()
-print(str(pl_name)+'! Your score:', points)
-if pl_rem== 1:
+print('\n'+str(pl_name)+'! Your score:', points)
+print('\nMax score:', max_score)
+if pl_rem == 1:
     if points > max(g_dict.values()):
-        print("Congratulations! You've set a record!")
+        print("\nCongratulations! You've set a record!")
     g_dict[pl_name] = points
     new_data = []
     for k,i in g_dict.items():
