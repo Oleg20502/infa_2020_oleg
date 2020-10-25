@@ -1,16 +1,14 @@
-from random import randrange as rnd, choice
-import pygame
+from random import randint
+import pygame as py
+from pygame.draw import *
 import math as m
+import numpy as np
 import time
 
-# print (dir(math))
-
-pygame.init()
-
-FPS = 20
+py.init()
+FPS = 50
 X, Y = 1000, 550
-screen = pygame.display.set_mode((X, Y))
-
+screen = py.display.set_mode((X, Y))
 
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
@@ -22,33 +20,32 @@ MAGENTA = (255, 0, 255)
 CYAN = (0, 255, 255)
 BLACK = (0, 0, 0)
 PINK = (230, 50, 230)
+CLEAR = (0, 0, 0, 0)
 COLORS = [RED, BLUE, YELLOW, lightGREEN, GREEN, MAGENTA, CYAN, PINK]
 
-
-
-
+tar_num = 3
+points = 0
+g_time = 2*60
 
 class Ball():
-    def __init__(self, screen, speed, x=None, y=None):
+    def __init__(self, screen, speed, x=None, y=None, r=None, color=None, mass=10):
         self.screen = screen
         self.scr_sx = X
         self.scr_sy = Y
-        #self.type = 'ball'
         self.points = 1
         self.spx = int(speed[0])
         self.spy = int(speed[1]) 
-        r_max = 60
-        r_min = 40
-        self.r = randint(r_min, r_max)
-        self.dr = int(self.r)
+        r_max = 40
+        r_min = 20
+        self.r = r or randint(r_min, r_max)
+        self.dr = int(self.r+1)
         self.x = x or randint(self.dr, self.scr_sx-self.dr)
         self.y = y or randint(self.dr, self.scr_sy-self.dr)
-        self.color = COLORS[randint(0, len(COLORS)-1)]
+        self.color = color or COLORS[randint(0, len(COLORS)-1)]
         
     def draw_object(self):
         '''рисует шарик '''
         circle(screen, self.color, (self.x, self.y), self.r)
-        self.move()
         
     def pos_check(self):
         if self.x <= self.dr or self.x >= self.scr_sx-self.dr:
@@ -67,85 +64,39 @@ class Ball():
     def move(self):
         self.x += self.spx
         self.y += self.spy
-        
         self.pos_check()
          
-    def hit_check(self, pos):
-        self.click = 0
-        if (pos[0] - self.x)**2+(pos[1] - self.y)**2 <= self.r**2:
-            self.click = 1
-        return self.click
-
-
-class gun():
-    self.f2_power = 10
-    self.f2_on = 0
-    self.an = 1
-    # self.id = canv.create_line(20,450,50,420,width=7) # FIXME: don't know how to set it...
-
-    def fire2_start(self, event):
-        self.f2_on = 1
-
-    def fire2_end(self, event):
-        """Выстрел мячом.
-
-        Происходит при отпускании кнопки мыши.
-        Начальные значения компонент скорости мяча vx и vy зависят от положения мыши.
-        """
-        global balls, bullet
-        bullet += 1
-        new_ball = ball()
-        new_ball.r += 5
-        self.an = math.atan((event.y-new_ball.y) / (event.x-new_ball.x))
-        new_ball.vx = self.f2_power * math.cos(self.an)
-        new_ball.vy = - self.f2_power * math.sin(self.an)
-        balls += [new_ball]
-        self.f2_on = 0
-        self.f2_power = 10
-
-    def targetting(self, event=0):
-        """Прицеливание. Зависит от положения мыши."""
-        if event:
-            self.an = math.atan((event.y-450) / (event.x-20))
-        if self.f2_on:
-            canv.itemconfig(self.id, fill='orange')
-        else:
-            canv.itemconfig(self.id, fill='black')
-        canv.coords(self.id, 20, 450,
-                    20 + max(self.f2_power, 20) * math.cos(self.an),
-                    450 + max(self.f2_power, 20) * math.sin(self.an)
-                    )
-
-    def power_up(self):
-        if self.f2_on:
-            if self.f2_power < 100:
-                self.f2_power += 1
-            canv.itemconfig(self.id, fill='orange')
-        else:
-            canv.itemconfig(self.id, fill='black')
+    def hit_check(self, other):
+        self.hit = 0
+        if (other.x - self.x)**2+(other.y - self.y)**2 <= (other.r + self.r)**2:
+            self.hit = 1
+        return self.hit 
 
 
 class Target(Ball):
     def __init__(self, screen, speed=[0, 0], x=None, y=None):   
-        super().__init__(screen, speed, x, y) 
+        super().__init__(screen, speed, x, y)
         self.mass = 10
-        self.points = 0
+        self.points = 1
         self.live = 1
 
+
 class Bullet(Ball):
-    def __init__(self, screen, ener, x, y, angle):
-        self.mass = 10
-        self.g = 9.8
-        self.k = 2
-        self.dt = 0.1
-        super().__init__(screen, speed=[0, 0], x, y)
-        self.speed_abs = m.sqrt(2 * ener/self.mass)
-        self.spx, self.spy = self.speed_abs * m.cos(angle), self.speed_abs * m.sin(angle)
+    def __init__(self, screen, ener, x, y, angle, r):
+        self.live = 1
+        self.g = 2
+        self.mass = 1
+        self.k = 0.05
+        self.dt = 1
+        speed_abs = 7 * m.sqrt(2 * ener/self.mass)
+        speed = [speed_abs * m.cos(angle), - speed_abs * m.sin(angle)]
+        super().__init__(screen, speed, x, y, r)
         
-    def move(self):
-        self.dx = - k * self.spx * m.abs(self.spx)/self.mass * self.dt
-        self.dy = - (k * self.spx * m.abs(self.spx)/self.mass + g) * self.dt
-        
+    def move1(self):
+        self.spx += - self.k * self.spx /self.mass * self.dt
+        self.spy +=  -(self.k * self.spy /self.mass - self.g) * self.dt
+        self.x += round(self.spx * self.dt)
+        self.y += round(self.spy * self.dt)
         self.pos_check()
         
 
@@ -154,71 +105,92 @@ class Gun():
         self.screen = screen
         self.x = x
         self.y = y
+        self.width = 15
         self.color = COLORS[randint(0, len(COLORS)-1)]
         self.max_energy = 100
+        self.energy = 10
         
-        def draw(self):
-            surfase = pygame.Surface(self.size)
-            surfase.set_colorkey(CLEAR)
-            g_rect = pygame.Rect((0,0),self.size)
-            rect(surfase, self.color, g_rect)
-            new_surfase = py.transform.rotate(surfase, self.angle)
-            Rect = new_surfase.get_rect()  
-            Rect.topleft = (self.x, self.y)                
-            self.screen.blit(new_surfase, Rect)
-
-        def angle_change(self, event=0):
-            if event:
-                self.angle = m.atan((event.y-self.x) / (event.x-self.y))
-            
+        self.angle = -1
+        self.gun_on = 0
+        self.shots = 0
         
-t1 = target()
-screen1 = canv.create_text(400, 300, text='', font='28')
-g1 = gun()
-bullet = 0
-balls = []
+    def draw_gun(self):
+        self.height = max(self.energy, 30)
+        Rect0 = np.array([[0, 0], [self.height, 0],
+                 [self.height, self.width], [0, self.width]], ndmin=2)
+        Trans = np.array([[m.cos(self.angle), m.sin(self.angle)],
+                [-m.sin(self.angle), m.cos(self.angle)]], ndmin=2)
+        R0 = np.array([[self.x]*4, [self.y]*4], ndmin = 2)
+        self.Rect = Rect0 @ Trans.T + R0.T
+        polygon(self.screen, self.color, self.Rect)
+        
+    def fire(self):
+        """Выстрел мячом.
+        Происходит при отпускании кнопки мыши.
+        Начальные значения компонент скорости мяча vx и vy зависят от положения мыши.
+        """
+        self.shots += 1
+        bul = Bullet(self.screen, self.energy, self.x, self.y, self.angle, 15)
+        self.gun_on = 0
+        self.energy = 10
+        return bul
+
+    def targetting(self, event=1):
+        """Прицеливание. Зависит от положения мыши."""
+        coord = py.mouse.get_pos()
+        w, h = coord[0]-self.x, coord[1]-self.y
+        if w != 0:
+            self.angle = 1/ 1 * m.atan(-h / w)
+        elif h <= 0:
+            self.angle = -3.14/2
+        else:
+            self.angle = 3.14/2
+        self.draw_gun()
+        
+    def fire_start(self):
+        self.gun_on = 1
+
+    def power_up(self):
+        if self.gun_on == 1 and self.energy < self.max_energy:
+            self.energy += 1
 
 
-def new_game(event=''):
-    global gun, t1, screen1, balls, bullet
-    t1.new_target()
-    bullet = 0
-    balls = []
-    canv.bind('<Button-1>', g1.fire2_start)
-    canv.bind('<ButtonRelease-1>', g1.fire2_end)
-    canv.bind('<Motion>', g1.targetting)
+targets = []
+for i in range(tar_num):
+    targets.append(Target(screen))
+                
+g1 = Gun(screen, 20, 450)
+bullets = []
 
-    z = 0.03
-    t1.live = 1
-    while t1.live or balls:
-        for b in balls:
-            b.move()
-            if b.hittest(t1) and t1.live:
-                t1.live = 0
-                t1.hit()
-                canv.bind('<Button-1>', '')
-                canv.bind('<ButtonRelease-1>', '')
-                canv.itemconfig(screen1, text='Вы уничтожили цель за ' + str(bullet) + ' выстрелов')
-        canv.update()
-        time.sleep(0.03)
-        g1.targetting()
-        g1.power_up()
-    canv.itemconfig(screen1, text='')
-    canv.delete(gun)
-    root.after(750, new_game)
-
-
-new_game()
-
-
-pygame.display.update()
-clock = pygame.time.Clock()
+py.display.update()
+clock = py.time.Clock()
 finished = False
-
+T1 = time.time()
 while not finished:
     clock.tick(FPS)
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+    T2 = time.time()
+    g1.targetting()
+    g1.power_up()
+    for t in targets:
+        if t.live == 1:
+            t.draw_object()
+    for event in py.event.get():
+        if event.type == py.QUIT or T2 - T1 >= g_time:
             finished = True
+        elif event.type == py.MOUSEBUTTONDOWN:
+            g1.fire_start()
+        elif event.type == py.MOUSEBUTTONUP:
+            bul = g1.fire()
+            bullets.append(bul)
+    for b in bullets:
+        for i in range(len(targets)):
+            if b.hit_check(targets[i]) and targets[i].live:
+                points += 1
+                targets[i].live = 0
+        b.draw_object()
+        b.move1()
+    py.display.update()
+    screen.fill(WHITE)
 
-pygame.quit()
+print(points)    
+py.quit()
