@@ -82,18 +82,19 @@ class Target(Ball):
         super().__init__(screen, speed, x, y)
         self.mass = 10
         self.points = 1
-        self.live = 1
+        self.life = 1
 
 
 class Bullet(Ball):
     def __init__(self, screen, ener, x, y, angle, r):
-        self.live = 1
-        self.g = 2
+        self.life = 1
+        self.g = 3
         self.mass = 1
-        self.k = 0.05
+        self.k = 0.07
         self.dt = 1
-        speed_abs = 7 * m.sqrt(2 * ener/self.mass)
-        speed = [speed_abs * m.cos(angle), - speed_abs * m.sin(angle)]
+        self.time = 0
+        start_speed = 10 * m.sqrt(2 * ener/self.mass)
+        speed = [start_speed * m.cos(angle), - start_speed * m.sin(angle)]
         super().__init__(screen, speed, x, y, r)
         
     def move1(self):
@@ -101,7 +102,14 @@ class Bullet(Ball):
         self.spy +=  -(self.k * self.spy /self.mass - self.g) * self.dt
         self.x += round(self.spx * self.dt)
         self.y += round(self.spy * self.dt)
+        self.speed_abs = m.sqrt(self.spx**2 + self.spy**2)
         self.pos_check()
+        
+    def live(self):
+        if self.speed_abs < 1.1:
+            self.time += 1
+        if self.time > 3:
+            self.life = 0
         
 
 class Gun():
@@ -113,7 +121,6 @@ class Gun():
         self.color = COLORS[randint(0, len(COLORS)-1)]
         self.max_energy = 100
         self.energy = 10
-        
         self.angle = -1
         self.gun_on = 0
         self.shots = 0
@@ -158,7 +165,13 @@ class Gun():
         if self.gun_on == 1 and self.energy < self.max_energy:
             self.energy += 2
 
-
+def delete(A):
+    newA = []
+    for a in A:
+        if a.life > 0:
+            newA.append(a)
+    return newA
+            
 targets = []
 for i in range(tar_num):
     targets.append(Target(screen, set_speed()))
@@ -176,9 +189,8 @@ while not finished:
     g1.targetting()
     g1.power_up()
     for t in targets:
-        if t.live == 1:
-            t.draw_object()
-            t.move()
+        t.draw_object()
+        t.move()
     for event in py.event.get():
         if event.type == py.QUIT or T2 - T1 >= g_time:
             finished = True
@@ -188,12 +200,15 @@ while not finished:
             bul = g1.fire()
             bullets.append(bul)
     for b in bullets:
-        for i in range(len(targets)):
-            if b.hit_check(targets[i]) and targets[i].live:
+        for t in targets:
+            if b.hit_check(t):
                 points += 1
-                targets[i].live = 0
+                t.life -= 1
         b.draw_object()
         b.move1()
+        b.live()
+    targets = delete(targets)
+    bullets = delete(bullets)
     py.display.update()
     screen.fill(WHITE)
 
