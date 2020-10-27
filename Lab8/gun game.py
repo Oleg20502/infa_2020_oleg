@@ -27,6 +27,10 @@ tar_num = 3
 points = 0
 g_time = 2*60
 
+def set_speed(x_max = 10, x_min = 2, y_max = 10, y_min = 2):
+    sp = [randint(x_min, x_max)*(-1)**randint(1,2), randint(y_min, y_max)*(-1)**randint(1,2)]
+    return sp
+
 class Ball():
     def __init__(self, screen, speed, x=None, y=None, r=None, color=None, mass=10):
         self.screen = screen
@@ -152,12 +156,12 @@ class Gun():
 
     def power_up(self):
         if self.gun_on == 1 and self.energy < self.max_energy:
-            self.energy += 1
+            self.energy += 2
 
 
 targets = []
 for i in range(tar_num):
-    targets.append(Target(screen))
+    targets.append(Target(screen, set_speed()))
                 
 g1 = Gun(screen, 20, 450)
 bullets = []
@@ -174,6 +178,7 @@ while not finished:
     for t in targets:
         if t.live == 1:
             t.draw_object()
+            t.move()
     for event in py.event.get():
         if event.type == py.QUIT or T2 - T1 >= g_time:
             finished = True
